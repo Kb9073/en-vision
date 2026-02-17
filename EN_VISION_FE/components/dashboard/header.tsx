@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Bell, Search } from "lucide-react"
 import { motion } from "framer-motion"
-import { FilterControls, type TimeRange } from "./filter-controls"
+import { FilterControls, type TimeRange, type CustomDateRange } from "./filter-controls"
 import { LiveIndicator } from "./live-indicator"
 
 /* =========================
@@ -20,11 +20,15 @@ interface HeaderProps {
     device: string
   }
 
+  customDateRange?: CustomDateRange
+
   onFiltersChange: (filters: {
     timeRange: TimeRange
     department: string
     device: string
   }) => void
+
+  onCustomDateRangeChange?: (range: CustomDateRange) => void
 
   /** Optional UI controls */
   showFilters?: boolean
@@ -42,8 +46,10 @@ interface HeaderProps {
 export function Header({
   title,
   filters,
+  customDateRange,
   subtitle,
   onFiltersChange,
+  onCustomDateRangeChange,
   showFilters = true,
   onSearch,
   notificationCount = 0,
@@ -89,6 +95,8 @@ export function Header({
               onTimeRangeChange={(timeRange) =>
                 onFiltersChange({ ...filters, timeRange })
               }
+              customDateRange={customDateRange}
+              onCustomDateRangeChange={onCustomDateRangeChange}
               department={filters.department}
               onDepartmentChange={(department) =>
                 onFiltersChange({ ...filters, department })

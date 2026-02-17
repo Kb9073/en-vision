@@ -13,12 +13,16 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Next.js frontend
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://192.168.0.9:3000",   # ← add this
+        "http://192.168.0.9:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ✅ ONLY TOP LEVEL ROUTERS
 app.include_router(dashboard_router)

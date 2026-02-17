@@ -17,7 +17,7 @@ import {
 } from "@/components/dashboard/recommendations-panel"
 import { useRecommendations } from "@/hooks/use-dashboard-data"
 import { AnimatePresence, motion } from "framer-motion"
-import type { TimeRange } from "@/components/dashboard/filter-controls"
+import type { TimeRange, CustomDateRange } from "@/components/dashboard/filter-controls"
 
 type TabId =
   | "home"
@@ -74,6 +74,7 @@ function DashboardContent() {
     department: "All Departments",
     device: "All Devices",
   })
+  const [customDateRange, setCustomDateRange] = useState<CustomDateRange | undefined>()
 
   const { data: recommendations } = useRecommendations()
   const pendingRecommendations =
@@ -97,7 +98,9 @@ function DashboardContent() {
           title={title}
           subtitle={subtitle}
           filters={filters}
+          customDateRange={customDateRange}
           onFiltersChange={setFilters}
+          onCustomDateRangeChange={setCustomDateRange}
         />
 
         <main className="flex-1 overflow-y-auto">

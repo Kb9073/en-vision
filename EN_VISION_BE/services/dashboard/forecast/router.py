@@ -1,31 +1,38 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-
+from sqlalchemy import text
 from db.session import get_db
-from services.dashboard.forecast.xgboost import run_xgboost_forecast
-from services.dashboard.forecast.lstm import run_lstm_forecast
+from datetime import datetime, timedelta
+from typing import Optional
 
 router = APIRouter()
 
-
 @router.get("/forecast")
 def get_forecast(
-    days: int = 7,
-    model: str = "xgboost",
+    days_ahead: int = 7,
     db: Session = Depends(get_db)
 ):
-    """
-    Unified forecast endpoint for frontend.
-    Default model = xgboost
-    """
 
-    if model == "lstm":
-        values = run_lstm_forecast(db, days)
-    else:
-        values = run_xgboost_forecast(db, days)
+    rows = db.execute(text("""
+        SELECT
+            forecast_date,
+            hour,
+            predicted_kwh,
+            confidence_interval_lower,
+            confidence_interval_upper
+        FROM energy_forecasts
+        WHERE forecast_date >= CURRENT_DATE
+        ORDER BY forecast_date, hour
+        LIMIT :limit
+    """), {"limit": days_ahead * 24}).fetchall()
 
-    return {
-        "model": model,
-        "horizon_days": days,
-        "values": values
-    }
+    return [
+        {
+            "forecastDate": str(r.forecast_date),
+            "hour": r.hour,
+            "predicted": float(r.predicted_kwh or 0),
+            "lower": float(r.confidence_interval_lower or 0),
+            "upper": float(r.confidence_interval_upper or 0)
+        }
+        for r in rows
+    ]

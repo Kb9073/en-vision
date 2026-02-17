@@ -11,11 +11,13 @@ import {
   Clock,
   Zap,
   Building2,
+  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAnomalies } from "@/hooks/use-dashboard-data"
 import { WhyTooltip } from "@/components/dashboard/why-tooltip"
 import { EmptyState } from "@/components/dashboard/empty-state"
+import { KPICard } from "@/components/dashboard/kpi-card"
 
 import {
   ScatterChart,
@@ -28,6 +30,11 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  ComposedChart,
 } from "recharts"
 
 import type { AnomalyPoint } from "@/lib/api/dashboard"
@@ -332,6 +339,55 @@ export function AnomaliesTab() {
     return <EmptyState type="no-anomalies" />
   }
 
+  // Calculate KPI metrics from real API data
+  const uniqueMeters = new Set(anomalies.map(a => a.affectedSystem)).size
+  const totalAnomalies = anomalies.length
+  const totalMeasures = anomalies.reduce((sum, a) => sum + a.value, 0)
+  
+  const severityCounts = anomalies.reduce((acc, a) => {
+    acc[a.severity] = (acc[a.severity] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  // Generate anomaly distribution from real data (grouped by day)
+  const anomaliesByDay = Array.from({ length: 30 }, (_, i) => {
+    const dayAnomalies = anomalies.filter((a) => {
+      const date = new Date(a.timestamp)
+      return date.getDate() === i + 1
+    })
+    return {
+      day: `${i + 1}`,
+      count: dayAnomalies.reduce((sum, a) => sum + a.value, 0),
+      anomalies: dayAnomalies.length,
+    }
+  })
+
+  // Energy mean by day (calculated from anomaly values)
+  const energyByDay = Array.from({ length: 30 }, (_, i) => {
+    const dayAnomalies = anomalies.filter((a) => {
+      const date = new Date(a.timestamp)
+      return date.getDate() === i + 1
+    })
+    const mean = dayAnomalies.length > 0
+      ? dayAnomalies.reduce((sum, a) => sum + a.value, 0) / dayAnomalies.length / 1000
+      : 0
+    return {
+      day: `${i + 1}`,
+      mean: Math.max(0, Math.min(0.6, mean)),
+    }
+  })
+
+  // Anomaly score distribution from actual anomalies
+  const scoreRanges = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  const scoreDistribution = scoreRanges.map((range) => {
+    const count = anomalies.filter((a) => {
+      const severity = a.severity
+      const scoreMap = { low: 0.2, medium: 0.5, high: 0.7, critical: 0.9 }
+      return scoreMap[severity] <= range && scoreMap[severity] > (range - 0.1)
+    }).length
+    return { range: range.toFixed(1), count: Math.max(0, count) }
+  })
+
   const chartData = anomalies.map((a, i) => ({
     ...a,
     index: i,
@@ -349,17 +405,189 @@ export function AnomaliesTab() {
         </p>
       </motion.div>
 
-      <div className="glass-card p-5">
+      {/* KPI Cards - IBM Style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0 }}
+          className="glass-card p-5 border border-border/50"
+        >
+          <p className="text-xs text-muted-foreground mb-2 font-medium">
+            Unique Smart Meters
+          </p>
+          <p className="text-3xl font-bold text-foreground">
+            {uniqueMeters}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass-card p-5 border border-border/50"
+        >
+          <p className="text-xs text-muted-foreground mb-2 font-medium">
+            Anomalies Detected
+          </p>
+          <p className="text-3xl font-bold text-chart-4">
+            {totalAnomalies.toLocaleString()}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card p-5 border border-border/50"
+        >
+          <p className="text-xs text-muted-foreground mb-2 font-medium">
+            Total Measures
+          </p>
+          <p className="text-3xl font-bold text-foreground">
+            {(totalMeasures / 1_000_000).toFixed(1)}M
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="glass-card p-5 border border-border/50"
+        >
+          <p className="text-xs text-muted-foreground mb-2 font-medium">
+            Critical Anomalies
+          </p>
+          <p className="text-3xl font-bold text-destructive">
+            {severityCounts.critical || 0}
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Grid of Charts - IBM Anomaly Detection Style */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Meter Readings by Day */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass-card p-5"
+        >
+          <h3 className="text-sm font-medium text-foreground mb-4">
+            Meter Readings by Day
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={anomaliesByDay}>
+                <defs>
+                  <linearGradient id="colorReadings" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.6}/>
+                    <stop offset="95%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.03 260 / 0.3)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 9 }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="count" stroke="oklch(0.75 0.15 85)" fill="url(#colorReadings)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Anomalies by Day */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card p-5"
+        >
+          <h3 className="text-sm font-medium text-foreground mb-4">
+            Anomalies by Day
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={anomaliesByDay}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.03 260 / 0.3)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 9 }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip />
+                <Bar dataKey="anomalies" fill="oklch(0.65 0.2 25)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Average Energy Mean by Day */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="glass-card p-5"
+        >
+          <h3 className="text-sm font-medium text-foreground mb-4">
+            Average Energy Mean by Day
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={energyByDay}>
+                <defs>
+                  <linearGradient id="colorEnergy" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.6}/>
+                    <stop offset="95%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.03 260 / 0.3)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 9 }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="mean" stroke="oklch(0.75 0.15 85)" fill="url(#colorEnergy)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Anomaly Score Distribution */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="glass-card p-5"
+        >
+          <h3 className="text-sm font-medium text-foreground mb-4">
+            Distribution of Anomaly Score
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={scoreDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.03 260 / 0.3)" vertical={false} />
+                <XAxis dataKey="range" label={{ value: "Anomaly Score", position: "insideBottomRight", offset: -5 }} tick={{ fontSize: 9 }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="oklch(0.75 0.15 85)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Anomaly Distribution Scatter */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="glass-card p-5"
+      >
         <h3 className="text-sm font-medium text-foreground mb-4">
-          Anomaly Distribution
+          Anomaly Distribution (Severity vs Time)
         </h3>
 
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey="hour" domain={[0, 24]} />
-              <YAxis type="number" dataKey="value" name="Magnitude" />
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.03 260 / 0.3)" />
+              <XAxis type="number" dataKey="hour" domain={[0, 24]} label={{ value: "Hour of Day", position: "insideBottomRight", offset: -5 }} />
+              <YAxis type="number" dataKey="value" name="Magnitude" label={{ value: "Energy Value", angle: -90, position: "insideLeft" }} />
               <Tooltip content={<CustomTooltip />} />
               <Scatter data={chartData}>
                 {chartData.map((entry, index) => (
@@ -376,8 +604,9 @@ export function AnomaliesTab() {
             </ScatterChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
+      {/* Recent Anomalies List */}
       <div className="glass-card p-5 space-y-3">
         <h3 className="text-sm font-medium text-foreground">
           Recent Anomalies

@@ -1,6 +1,5 @@
 // lib/api/dashboard.ts
 // Dedicated API module for FastAPI dashboard endpoints
-// One function per backend endpoint – NO frontend aggregation
 
 import axios from "axios"
 
@@ -14,7 +13,7 @@ const api = axios.create({
 })
 
 /* =========================
-   KPI TYPES
+   TYPES
 ========================= */
 
 export interface KPIBlock {
@@ -37,18 +36,46 @@ export interface DashboardKPIs {
   lastIngestionTimestamp: string
 }
 
-/* =========================
-   OTHER TYPES
-========================= */
-
 export interface EnergyTrendPoint {
-  date: string
-  value: number
+  timestamp: string
+  total_kwh: number
+  total_cost: number
+  total_emissions: number
+  peak_power: number
+  baseline_kwh: number
 }
+
 
 export interface DeviationOverTimePoint {
   date: string
   deviation: number
+}
+
+export interface CostMetrics {
+  total_cost: number
+  electricity_cost: number
+  gas_cost: number
+  previous_cost: number
+  current_cost: number
+  previous_month: string
+  current_month: string
+  cost_change_percent: number
+}
+
+export interface EnergyIntensity {
+  intensity: number
+  current_usage: number
+  predicted_usage: number
+  usage_history: Array<{ date: string; value: number }>
+  carbon_till_date: number
+  carbon_predicted: number
+  green_energy_percent: number
+}
+
+export interface ActiveAppliance {
+  name: string
+  usage: number
+  maxUsage?: number
 }
 
 export interface DeviationData {
@@ -60,11 +87,12 @@ export interface DeviationData {
 }
 
 export interface AnomalyPoint {
+  id: string
   timestamp: string
-  value: number
-  severity: "low" | "medium" | "high" | "critical"
+  severity: string
   description: string
 }
+
 
 export interface ForecastPoint {
   timestamp: string
@@ -112,6 +140,27 @@ export const getDeviationOverTime = async (
   return data
 }
 
+export const getCostMetrics = async (
+  params?: any
+): Promise<CostMetrics> => {
+  const { data } = await api.get("/dashboard/cost-metrics", { params })
+  return data
+}
+
+export const getEnergyIntensity = async (
+  params?: any
+): Promise<EnergyIntensity> => {
+  const { data } = await api.get("/dashboard/energy-intensity", { params })
+  return data
+}
+
+export const getActiveAppliances = async (
+  params?: any
+): Promise<ActiveAppliance[]> => {
+  const { data } = await api.get("/dashboard/active-appliances", { params })
+  return data
+}
+
 export const getEnergyTrend = async (
   params?: any
 ): Promise<EnergyTrendPoint[]> => {
@@ -119,38 +168,52 @@ export const getEnergyTrend = async (
   return data
 }
 
-export const getDeviations = async (): Promise<DeviationData[]> => {
-  const { data } = await api.get("/dashboard/deviations")
+export const getDeviations = async (
+  params?: any
+): Promise<DeviationData[]> => {
+  const { data } = await api.get("/dashboard/deviations", { params })
   return data
 }
 
-export const getAnomalies = async (): Promise<AnomalyPoint[]> => {
-  const { data } = await api.get("/dashboard/anomalies")
+export const getAnomalies = async (
+  params?: any
+): Promise<AnomalyPoint[]> => {
+  const { data } = await api.get("/dashboard/anomalies", { params })
   return data
 }
 
-export const getForecast = async (): Promise<ForecastPoint[]> => {
-  const { data } = await api.get("/dashboard/forecast")
+export const getForecast = async (
+  params?: any
+): Promise<ForecastPoint[]> => {
+  const { data } = await api.get("/dashboard/forecast", { params })
+  return data?.values || []
+}
+
+export const getCarbonMetrics = async (
+  params?: any
+): Promise<CarbonMetrics> => {
+  const { data } = await api.get("/dashboard/carbon-metrics", { params })
   return data
 }
 
-export const getCarbonMetrics = async (): Promise<CarbonMetrics> => {
-  const { data } = await api.get("/dashboard/carbon-metrics")
+export const getCarbonBreakdown = async (
+  params?: any
+): Promise<CarbonBreakdown[]> => {
+  const { data } = await api.get("/dashboard/carbon-breakdown", { params })
   return data
 }
 
-export const getCarbonBreakdown = async (): Promise<CarbonBreakdown[]> => {
-  const { data } = await api.get("/dashboard/carbon-breakdown")
+export const getAIInsights = async (
+  params?: any
+): Promise<AIInsight[]> => {
+  const { data } = await api.get("/dashboard/ai-insights", { params })
   return data
 }
 
-export const getAIInsights = async (): Promise<AIInsight[]> => {
-  const { data } = await api.get("/dashboard/ai-insights")
-  return data
-}
-
-export const getRecommendations = async (): Promise<Recommendation[]> => {
-  const { data } = await api.get("/dashboard/recommendations")
+export const getRecommendations = async (
+  params?: any
+): Promise<Recommendation[]> => {
+  const { data } = await api.get("/dashboard/recommendations", { params })
   return data
 }
 
