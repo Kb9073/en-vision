@@ -154,4 +154,56 @@ export const getRecommendations = async (): Promise<Recommendation[]> => {
   return data
 }
 
+/* =========================
+   NEW ENDPOINTS - ENERGY DASHBOARD
+========================= */
+
+export interface CostMetrics {
+  total_cost: number
+  electricity_cost: number
+  gas_cost: number
+  previous_cost: number
+  current_cost: number
+  previous_month: string
+  current_month: string
+  cost_change_percent: number
+}
+
+export interface EnergyIntensity {
+  intensity: number
+  current_usage: number
+  predicted_usage: number
+  usage_history: Array<{ date: string; value: number }>
+  carbon_till_date: number
+  carbon_predicted: number
+  green_energy_percent: number
+}
+
+export interface ActiveAppliance {
+  name: string
+  usage: number
+  maxUsage?: number
+}
+
+export const getCostMetrics = async (
+  params?: any
+): Promise<CostMetrics> => {
+  const { data } = await api.get("/dashboard/cost-metrics", { params })
+  return data
+}
+
+export const getEnergyIntensity = async (
+  params?: any
+): Promise<EnergyIntensity> => {
+  const { data } = await api.get("/dashboard/energy-intensity", { params })
+  return data
+}
+
+export const getActiveAppliances = async (
+  params?: any
+): Promise<ActiveAppliance[]> => {
+  const { data } = await api.get("/dashboard/active-appliances", { params })
+  return data
+}
+
 export default api

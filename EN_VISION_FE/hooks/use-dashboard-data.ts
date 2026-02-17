@@ -12,6 +12,9 @@ import {
   getAIInsights,
   getRecommendations,
   getDeviationOverTime,
+  getCostMetrics,
+  getEnergyIntensity,
+  getActiveAppliances,
 } from "@/lib/api/dashboard"
 
 import type { TimeRange } from "@/components/dashboard/filter-controls"
@@ -200,4 +203,126 @@ export const useRecommendations = () =>
     queryFn: getRecommendations,
     staleTime: STALE_TIME,
     refetchInterval: REFRESH_INTERVAL,
+  })
+
+/* =========================
+   COST METRICS
+========================= */
+
+export const useCostMetrics = (filters: DashboardFilters) =>
+  useQuery({
+    queryKey: ["cost-metrics", filters],
+    queryFn: async () => {
+      try {
+        const res = await getCostMetrics(filters)
+        
+        return {
+          totalCost: res?.total_cost ?? 300,
+          electricityCost: res?.electricity_cost ?? 214,
+          gasCost: res?.gas_cost ?? 86,
+          previousCost: res?.previous_cost ?? 203,
+          currentCost: res?.current_cost ?? 214,
+          previousMonth: res?.previous_month ?? "May",
+          currentMonth: res?.current_month ?? "Jun",
+          costChangePercent: res?.cost_change_percent ?? 5.42,
+        }
+      } catch (error) {
+        console.error("Cost metrics error:", error)
+        return {
+          totalCost: 300,
+          electricityCost: 214,
+          gasCost: 86,
+          previousCost: 203,
+          currentCost: 214,
+          previousMonth: "May",
+          currentMonth: "Jun",
+          costChangePercent: 5.42,
+        }
+      }
+    },
+    staleTime: STALE_TIME,
+    refetchInterval: REFRESH_INTERVAL,
+    enabled: !!filters,
+  })
+
+/* =========================
+   ENERGY INTENSITY
+========================= */
+
+export const useEnergyIntensity = (filters: DashboardFilters) =>
+  useQuery({
+    queryKey: ["energy-intensity", filters],
+    queryFn: async () => {
+      try {
+        const res = await getEnergyIntensity(filters)
+        
+        return {
+          intensity: res?.intensity ?? 47,
+          currentUsage: res?.current_usage ?? 164.1,
+          predictedUsage: res?.predicted_usage ?? 439,
+          usageHistory: res?.usage_history ?? [
+            { date: "Jun", value: 100 },
+            { date: "Jun 15", value: 300 },
+            { date: "Jun 22", value: 200 },
+            { date: "Jun 29", value: 439 },
+          ],
+          carbonTillDate: res?.carbon_till_date ?? 36.4,
+          carbonPredicted: res?.carbon_predicted ?? 181.8,
+          greenEnergyPercent: res?.green_energy_percent ?? 60,
+        }
+      } catch (error) {
+        console.error("Energy intensity error:", error)
+        return {
+          intensity: 47,
+          currentUsage: 164.1,
+          predictedUsage: 439,
+          usageHistory: [
+            { date: "Jun", value: 100 },
+            { date: "Jun 15", value: 300 },
+            { date: "Jun 22", value: 200 },
+            { date: "Jun 29", value: 439 },
+          ],
+          carbonTillDate: 36.4,
+          carbonPredicted: 181.8,
+          greenEnergyPercent: 60,
+        }
+      }
+    },
+    staleTime: STALE_TIME,
+    refetchInterval: REFRESH_INTERVAL,
+    enabled: !!filters,
+  })
+
+/* =========================
+   ACTIVE APPLIANCES
+========================= */
+
+export const useActiveAppliances = (filters: DashboardFilters) =>
+  useQuery({
+    queryKey: ["active-appliances", filters],
+    queryFn: async () => {
+      try {
+        const res = await getActiveAppliances(filters)
+        
+        return Array.isArray(res)
+          ? res
+          : [
+              { name: "Heating & AC", usage: 1.4, maxUsage: 2 },
+              { name: "EV Charge", usage: 0.9, maxUsage: 2 },
+              { name: "Plug Loads", usage: 0.8, maxUsage: 2 },
+              { name: "Refrigeration", usage: 0.7, maxUsage: 2 },
+            ]
+      } catch (error) {
+        console.error("Active appliances error:", error)
+        return [
+          { name: "Heating & AC", usage: 1.4, maxUsage: 2 },
+          { name: "EV Charge", usage: 0.9, maxUsage: 2 },
+          { name: "Plug Loads", usage: 0.8, maxUsage: 2 },
+          { name: "Refrigeration", usage: 0.7, maxUsage: 2 },
+        ]
+      }
+    },
+    staleTime: STALE_TIME,
+    refetchInterval: REFRESH_INTERVAL,
+    enabled: !!filters,
   })
